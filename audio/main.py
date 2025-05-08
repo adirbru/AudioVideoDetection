@@ -1,10 +1,12 @@
+import json
+import scipy.signal
 from pydub import AudioSegment, silence
 import wave
 import numpy as np
 from scipy.io import wavfile
 import matplotlib.pyplot as plt
 import numba as nb
-def plot(abs_samples, sample_rate, threshold=0):
+def plot(abs_samples, sample_rate, threshold=0, starts=[], ends=[]):
     time_axis = np.linspace(0, len(abs_samples) / sample_rate, num=len(abs_samples))
 
     plt.figure(figsize=(12, 4))
@@ -14,9 +16,15 @@ def plot(abs_samples, sample_rate, threshold=0):
     plt.ylabel('Amplitude (abs)')
     plt.axhline(y=threshold, color='red', linestyle='--', linewidth=1.5, label=f'Threshold = {threshold}')
 
+    for start in starts:
+        plt.axvline(x=start, color='green', linestyle='--', label='Start' if starts.index(start) == 0 else "")
+    for end in ends:
+        plt.axvline(x=end, color='red', linestyle='--', label='End' if ends.index(end) == 0 else "")
+
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+import scipy.signal as signal
 
 
 @nb.njit
@@ -68,7 +76,7 @@ if __name__ == '__main__':
 
     # Get absolute values of the audio signal
     abs_samples = np.abs(data)
-    threshold = np.max(abs_samples) / 2
+    threshold = 0.75 * np.max(abs_samples)  # old was max / 2
     plot(abs_samples, sound_sample_rate, threshold=threshold)
 
     bool_above_threshold = abs_samples > threshold
@@ -88,3 +96,10 @@ if __name__ == '__main__':
     for s, e in zip(starts, ends):
         print(s, e)
 
+    plot(abs_samples, sample_rate=sound_sample_rate, threshold=threshold, starts=list(starts), ends=list(ends))
+
+    formatted_times = [{"timestamp_ms": f"{time:.3f}"} for time in starts]
+
+    # Export to JSON
+    with open("timestamps.json", "w") as f:
+        json.dump(formatted_times, f, indent=2)
