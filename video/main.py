@@ -9,24 +9,18 @@ from pathlib import Path
 
 
 class SoundActionDetector:
-    def __init__(self, sensitivity=0.5, min_area=100):
+    def __init__(self, sensitivity=0.5):
         """
         Initialize the detector with configurable parameters
 
         Args:
             sensitivity: Float between 0-1 controlling detection threshold
-            min_area: Minimum contour area to consider
         """
         self.sensitivity = sensitivity
-        self.min_area = min_area
         self.motion_history = []
-        # Much lower thresholds for better detection
-        self.motion_threshold = 0.005 + (0.05 * sensitivity)  # Halved the threshold
-        self.clap_threshold = 0.05 + (0.2 * sensitivity)  # Much lower threshold for claps
-        self.stomp_threshold = 0.2 + (0.3 * sensitivity)
         # Significantly increased weights for better detection
         self.vertical_motion_weight = 1.0 + (2.0 * sensitivity)
-        self.horizontal_motion_weight = 3.0 + (4.0 * sensitivity)  # Even higher weight for horizontal motion
+        self.horizontal_motion_weight = 3.0 + (8.0 * sensitivity)  # Even higher weight for horizontal motion
 
     def process_video(self, video_path, output_path=None):
         """
@@ -257,12 +251,10 @@ class SoundActionDetector:
                 frame = frame_info['frame']
                 # Only draw indicators on peak frames
                 if (i < len(frame_data) - 1 # Not reaching the end
-                        and (frame_diffs[i]/frame_diffs[max(i-1, 0)] < 0.5 # Sharp decrease in motion
-                            or frame_diffs[i] / frame_diffs[max(i-2, 0)] < 0.5  # Sharp decrease in motion
-                        )
-                        and frame_diffs[i] - frame_diffs[max(i-1, 0)] < -0.2  # Prevent being too sensitive
-                        and i-1 not in action_timestamps):
-                    confidence = float(round(1 - frame_diffs[i]/frame_diffs[max(i-1, 0)], 3))
+                        and frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]) < 0.5 # Sharp decrease in motion
+                        and frame_diffs[i] - max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]) < -0.12  # Prevent being too sensitive
+                        and i-1 not in action_timestamps and i-2 not in action_timestamps):
+                    confidence = float(round(1 - frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]), 3))
 
                     # Add timestamp and confidence
                     timestamp_ms = round(i / fps, 3)
@@ -353,8 +345,6 @@ def main():
     parser.add_argument('--visualization', '-v', help='Path to save visualization video')
     parser.add_argument('--sensitivity', '-s', type=float, default=0.7,  # Higher default sensitivity
                         help='Detection sensitivity (0.0-1.0)')
-    parser.add_argument('--min-area', '-a', type=int, default=100,  # Lower default min area
-                        help='Minimum contour area to consider for motion')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='Show debug information and save motion graph')
 
@@ -367,7 +357,7 @@ def main():
         output_path = args.output
 
     # Initialize and run detector
-    detector = SoundActionDetector(sensitivity=args.sensitivity, min_area=args.min_area)
+    detector = SoundActionDetector(sensitivity=args.sensitivity)
     action_timestamps = detector.process_video(args.input_video, Path.cwd() / 'video' / Path(args.input_video).with_suffix('.annotated.mp4').name)
     detector.save_results(action_timestamps, output_path)
 
@@ -394,7 +384,7 @@ def main():
             plt.plot(time_axis, smoothed_data)
 
             # Mark detected actions
-            action_times = [ts / 1000 for ts, _ in action_timestamps.values()]  # Convert ms to seconds
+            action_times = [ts for ts, _ in action_timestamps.values()]  # Convert ms to seconds
             action_values = [smoothed_data[int(t * fps)] if int(t * fps) < len(smoothed_data) else 0
                              for t in action_times]
             plt.scatter(action_times, action_values, color='red', s=50)
