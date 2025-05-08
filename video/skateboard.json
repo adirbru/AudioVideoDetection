@@ -1,50 +1,38 @@
 [
   {
-    "timestamp_ms": 2416,
+    "timestamp_ms": 0.0,
+    "confidence": 0.5753385630717439
+  },
+  {
+    "timestamp_ms": 2.417,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 2708,
+    "timestamp_ms": 2.708,
     "confidence": 0.7079525157248323
   },
   {
-    "timestamp_ms": 3208,
-    "confidence": 0.9045776978844494
-  },
-  {
-    "timestamp_ms": 3291,
-    "confidence": 0.9501600722841532
-  },
-  {
-    "timestamp_ms": 3416,
-    "confidence": 0.7534893285702714
-  },
-  {
-    "timestamp_ms": 3500,
+    "timestamp_ms": 3.5,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 3583,
-    "confidence": 0.5969799745733335
-  },
-  {
-    "timestamp_ms": 3791,
+    "timestamp_ms": 3.792,
     "confidence": 0.5225486402155062
   },
   {
-    "timestamp_ms": 4041,
+    "timestamp_ms": 4.042,
     "confidence": 0.593625411776862
   },
   {
-    "timestamp_ms": 4583,
+    "timestamp_ms": 4.583,
     "confidence": 0.6010604412312724
   },
   {
-    "timestamp_ms": 5000,
+    "timestamp_ms": 5.0,
     "confidence": 0.5649837195450991
   },
   {
-    "timestamp_ms": 10500,
+    "timestamp_ms": 10.5,
     "confidence": 1.0
   }
 ]

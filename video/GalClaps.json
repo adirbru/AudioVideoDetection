@@ -1,82 +1,50 @@
 [
   {
-    "timestamp_ms": 7376,
+    "timestamp_ms": 7.377,
     "confidence": 0.74759355426213
   },
   {
-    "timestamp_ms": 7543,
+    "timestamp_ms": 7.544,
     "confidence": 0.7429092629481385
   },
   {
-    "timestamp_ms": 10247,
+    "timestamp_ms": 10.247,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 10414,
-    "confidence": 0.6881902153889887
-  },
-  {
-    "timestamp_ms": 11115,
+    "timestamp_ms": 11.115,
     "confidence": 0.5731276208458109
   },
   {
-    "timestamp_ms": 12450,
+    "timestamp_ms": 12.45,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 12583,
+    "timestamp_ms": 12.584,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 12984,
-    "confidence": 0.5831284595702833
-  },
-  {
-    "timestamp_ms": 13050,
-    "confidence": 0.7638656095323857
-  },
-  {
-    "timestamp_ms": 13117,
+    "timestamp_ms": 13.118,
     "confidence": 0.8683966137308056
   },
   {
-    "timestamp_ms": 13217,
-    "confidence": 0.7630932194361056
-  },
-  {
-    "timestamp_ms": 13284,
-    "confidence": 0.6927619815772177
-  },
-  {
-    "timestamp_ms": 13518,
+    "timestamp_ms": 13.518,
     "confidence": 0.7127386979705361
   },
   {
-    "timestamp_ms": 14753,
+    "timestamp_ms": 14.753,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 14920,
+    "timestamp_ms": 14.92,
     "confidence": 1.0
   },
   {
-    "timestamp_ms": 15354,
-    "confidence": 0.7195990952590018
-  },
-  {
-    "timestamp_ms": 15420,
+    "timestamp_ms": 15.421,
     "confidence": 0.7605988600024008
   },
   {
-    "timestamp_ms": 15520,
-    "confidence": 0.7489780859803856
-  },
-  {
-    "timestamp_ms": 15687,
-    "confidence": 0.5399050283089214
-  },
-  {
-    "timestamp_ms": 15821,
+    "timestamp_ms": 15.821,
     "confidence": 0.699725586533183
   }
 ]
