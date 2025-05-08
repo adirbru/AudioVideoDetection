@@ -238,14 +238,14 @@ class SoundActionDetector:
         print(f"\nAdaptive threshold: {adaptive_threshold:.6f} (mean: {mean_motion:.6f}, std: {std_motion:.6f})")
 
         # First attempt with normal parameters
-        _, _, peaks = find_peaks(
-            smoothed_diffs,
-            threshold=adaptive_threshold,
-            hold_for_unify=3
-        )
+        # _, _, peaks = find_peaks(
+        #     smoothed_diffs,
+        #     threshold=adaptive_threshold,
+        #     hold_for_unify=3
+        # )
 
         # Convert peaks to timestamps and calculate confidence scores
-        action_timestamps = []
+        action_timestamps = {}
         if output_path and frame_data:
             print("Creating visualization with detected sound events...")
             # Create new video writer for the visualization
@@ -256,46 +256,41 @@ class SoundActionDetector:
             for i, frame_info in enumerate(frame_data):
                 frame = frame_info['frame']
                 # Only draw indicators on peak frames
-                if i in peaks:
-                    # Calculate confidence score for this peak
-                    peak_height = smoothed_diffs[i]
-
-                    # Normalize confidence between 0 and 1
-                    confidence = min(1.0, peak_height / (adaptive_threshold * 2))
+                if i < len(frame_data) - 1 and frame_diffs[i]/frame_diffs[max(i-1, 0)] < 0.5 and i-1 not in action_timestamps:
+                    confidence = float(round(1 - frame_diffs[i]/frame_diffs[max(i-1, 0)], 3))
 
                     # Add timestamp and confidence
-                    if confidence > 0.5:
-                        timestamp_ms = round(i / fps, 3)
-                        action_timestamps.append((timestamp_ms, confidence))
+                    timestamp_ms = round(i / fps, 3)
+                    action_timestamps[i] = (timestamp_ms, confidence)
 
-                        # Draw confidence indicator
-                        confidence_color = (
-                            int(255 * (1 - confidence)),  # Red component
-                            int(255 * confidence),  # Green component
-                            0  # Blue component
-                        )
+                    # Draw confidence indicator
+                    confidence_color = (
+                        int(255 * (1 - confidence)),  # Red component
+                        int(255 * confidence),  # Green component
+                        0  # Blue component
+                    )
 
-                        # Draw confidence bar
-                        bar_width = 100
-                        bar_height = 20
-                        bar_x = 10
-                        bar_y = 90
+                    # Draw confidence bar
+                    bar_width = 100
+                    bar_height = 20
+                    bar_x = 10
+                    bar_y = 90
 
-                        # Background bar
-                        cv2.rectangle(frame, (bar_x, bar_y),
-                                      (bar_x + bar_width, bar_y + bar_height),
-                                      (100, 100, 100), -1)
+                    # Background bar
+                    cv2.rectangle(frame, (bar_x, bar_y),
+                                  (bar_x + bar_width, bar_y + bar_height),
+                                  (100, 100, 100), -1)
 
-                        # Confidence level
-                        cv2.rectangle(frame, (bar_x, bar_y),
-                                      (bar_x + int(bar_width * confidence), bar_y + bar_height),
-                                      confidence_color, -1)
+                    # Confidence level
+                    cv2.rectangle(frame, (bar_x, bar_y),
+                                  (bar_x + int(bar_width * confidence), bar_y + bar_height),
+                                  confidence_color, -1)
 
-                        # Add text
-                        cv2.putText(frame, f"Sound Event at {timestamp_ms}ms", (10, 60),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                        cv2.putText(frame, f"Confidence: {confidence:.2f}", (10, 120),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, confidence_color, 2)
+                    # Add text
+                    cv2.putText(frame, f"Sound Event at {timestamp_ms}ms", (10, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    cv2.putText(frame, f"Confidence: {confidence:.2f}", (10, 120),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, confidence_color, 2)
 
                 # Add motion score
                 cv2.putText(frame, f"Motion: {frame_diffs[i]:.6f}", (10, 30),
@@ -337,7 +332,7 @@ class SoundActionDetector:
                 {
                     "timestamp_ms": ts,
                     "confidence": conf
-                } for ts, conf in action_timestamps
+                } for ts, conf in action_timestamps.values()
             ]
 
         with open(output_path, 'w') as f:
@@ -394,7 +389,7 @@ def main():
             plt.plot(time_axis, smoothed_data)
 
             # Mark detected actions
-            action_times = [ts / 1000 for ts, _ in action_timestamps]  # Convert ms to seconds
+            action_times = [ts / 1000 for ts, _ in action_timestamps.values()]  # Convert ms to seconds
             action_values = [smoothed_data[int(t * fps)] if int(t * fps) < len(smoothed_data) else 0
                              for t in action_times]
             plt.scatter(action_times, action_values, color='red', s=50)
