@@ -267,7 +267,7 @@ class SoundActionDetector:
                     confidence = min(1.0, peak_height / (adaptive_threshold * 2))
 
                     # Add timestamp and confidence
-                    if confidence > 0:
+                    if confidence > 0.5:
                         timestamp_ms = int((i * 1000) / fps)
                         action_timestamps.append((timestamp_ms, confidence))
 
@@ -334,14 +334,12 @@ class SoundActionDetector:
             action_timestamps: List of tuples (timestamp_ms, confidence) where actions were detected
             output_path: Path to save the results
         """
-        results = {
-            "detected_actions": [
+        results = [
                 {
                     "timestamp_ms": ts,
                     "confidence": conf
                 } for ts, conf in action_timestamps
             ]
-        }
 
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)

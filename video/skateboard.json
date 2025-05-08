@@ -1,260 +1,50 @@
-{
-  "detected_actions": [
-    {
-      "timestamp_ms": 791,
-      "confidence": 0.3005087936141951
-    },
-    {
-      "timestamp_ms": 958,
-      "confidence": 0.16560770695539662
-    },
-    {
-      "timestamp_ms": 1083,
-      "confidence": 0.1823279570954339
-    },
-    {
-      "timestamp_ms": 1333,
-      "confidence": 0.17869339614069407
-    },
-    {
-      "timestamp_ms": 1416,
-      "confidence": 0.17457110248211974
-    },
-    {
-      "timestamp_ms": 1750,
-      "confidence": 0.2336443184538507
-    },
-    {
-      "timestamp_ms": 2041,
-      "confidence": 0.2855225434056204
-    },
-    {
-      "timestamp_ms": 2416,
-      "confidence": 1.0
-    },
-    {
-      "timestamp_ms": 2708,
-      "confidence": 0.7079525157248323
-    },
-    {
-      "timestamp_ms": 2916,
-      "confidence": 0.2833265791903566
-    },
-    {
-      "timestamp_ms": 3041,
-      "confidence": 0.3743540831439278
-    },
-    {
-      "timestamp_ms": 3208,
-      "confidence": 0.9045776978844494
-    },
-    {
-      "timestamp_ms": 3291,
-      "confidence": 0.9501600722841532
-    },
-    {
-      "timestamp_ms": 3416,
-      "confidence": 0.7534893285702714
-    },
-    {
-      "timestamp_ms": 3500,
-      "confidence": 1.0
-    },
-    {
-      "timestamp_ms": 3583,
-      "confidence": 0.5969799745733335
-    },
-    {
-      "timestamp_ms": 3708,
-      "confidence": 0.17280106410814688
-    },
-    {
-      "timestamp_ms": 3791,
-      "confidence": 0.5225486402155062
-    },
-    {
-      "timestamp_ms": 4041,
-      "confidence": 0.593625411776862
-    },
-    {
-      "timestamp_ms": 4250,
-      "confidence": 0.32883977098409706
-    },
-    {
-      "timestamp_ms": 4375,
-      "confidence": 0.47197326097883124
-    },
-    {
-      "timestamp_ms": 4458,
-      "confidence": 0.4863449437059763
-    },
-    {
-      "timestamp_ms": 4583,
-      "confidence": 0.6010604412312724
-    },
-    {
-      "timestamp_ms": 4791,
-      "confidence": 0.28054340309899123
-    },
-    {
-      "timestamp_ms": 4916,
-      "confidence": 0.47185748981635917
-    },
-    {
-      "timestamp_ms": 5000,
-      "confidence": 0.5649837195450991
-    },
-    {
-      "timestamp_ms": 5083,
-      "confidence": 0.20252764416888333
-    },
-    {
-      "timestamp_ms": 5166,
-      "confidence": 0.48259507840796745
-    },
-    {
-      "timestamp_ms": 5250,
-      "confidence": 0.38733917279086527
-    },
-    {
-      "timestamp_ms": 5333,
-      "confidence": 0.2732485127694774
-    },
-    {
-      "timestamp_ms": 5416,
-      "confidence": 0.24645948591071024
-    },
-    {
-      "timestamp_ms": 5500,
-      "confidence": 0.1977498429847304
-    },
-    {
-      "timestamp_ms": 5583,
-      "confidence": 0.2619954157314253
-    },
-    {
-      "timestamp_ms": 5791,
-      "confidence": 0.39681938385780235
-    },
-    {
-      "timestamp_ms": 5916,
-      "confidence": 0.23854414617780262
-    },
-    {
-      "timestamp_ms": 6041,
-      "confidence": 0.24860055218763935
-    },
-    {
-      "timestamp_ms": 6125,
-      "confidence": 0.20191797828908972
-    },
-    {
-      "timestamp_ms": 6250,
-      "confidence": 0.2015384075947105
-    },
-    {
-      "timestamp_ms": 6333,
-      "confidence": 0.3929445977409326
-    },
-    {
-      "timestamp_ms": 6416,
-      "confidence": 0.2572708319364746
-    },
-    {
-      "timestamp_ms": 6500,
-      "confidence": 0.1661596739816353
-    },
-    {
-      "timestamp_ms": 6625,
-      "confidence": 0.23356351204972256
-    },
-    {
-      "timestamp_ms": 6833,
-      "confidence": 0.23913523265329462
-    },
-    {
-      "timestamp_ms": 7208,
-      "confidence": 0.1307657220625252
-    },
-    {
-      "timestamp_ms": 7375,
-      "confidence": 0.22756871320200217
-    },
-    {
-      "timestamp_ms": 7541,
-      "confidence": 0.15089095147301287
-    },
-    {
-      "timestamp_ms": 7666,
-      "confidence": 0.12380320700591524
-    },
-    {
-      "timestamp_ms": 7875,
-      "confidence": 0.13614366601471853
-    },
-    {
-      "timestamp_ms": 8083,
-      "confidence": 0.19387799782884316
-    },
-    {
-      "timestamp_ms": 8166,
-      "confidence": 0.24663557011427636
-    },
-    {
-      "timestamp_ms": 8250,
-      "confidence": 0.1215693137303666
-    },
-    {
-      "timestamp_ms": 8333,
-      "confidence": 0.20233174349012675
-    },
-    {
-      "timestamp_ms": 8416,
-      "confidence": 0.14523800432802786
-    },
-    {
-      "timestamp_ms": 8500,
-      "confidence": 0.16632726207569756
-    },
-    {
-      "timestamp_ms": 8708,
-      "confidence": 0.31695707488626285
-    },
-    {
-      "timestamp_ms": 8875,
-      "confidence": 0.17796053667309356
-    },
-    {
-      "timestamp_ms": 8958,
-      "confidence": 0.4408314251387942
-    },
-    {
-      "timestamp_ms": 9333,
-      "confidence": 0.20571209804759144
-    },
-    {
-      "timestamp_ms": 9458,
-      "confidence": 0.263437466933008
-    },
-    {
-      "timestamp_ms": 9666,
-      "confidence": 0.24241015609364633
-    },
-    {
-      "timestamp_ms": 10125,
-      "confidence": 0.2121982707889324
-    },
-    {
-      "timestamp_ms": 10208,
-      "confidence": 0.1736704681927747
-    },
-    {
-      "timestamp_ms": 10333,
-      "confidence": 0.23634029271799922
-    },
-    {
-      "timestamp_ms": 10500,
-      "confidence": 1.0
-    }
-  ]
-}
+[
+  {
+    "timestamp_ms": 2416,
+    "confidence": 1.0
+  },
+  {
+    "timestamp_ms": 2708,
+    "confidence": 0.7079525157248323
+  },
+  {
+    "timestamp_ms": 3208,
+    "confidence": 0.9045776978844494
+  },
+  {
+    "timestamp_ms": 3291,
+    "confidence": 0.9501600722841532
+  },
+  {
+    "timestamp_ms": 3416,
+    "confidence": 0.7534893285702714
+  },
+  {
+    "timestamp_ms": 3500,
+    "confidence": 1.0
+  },
+  {
+    "timestamp_ms": 3583,
+    "confidence": 0.5969799745733335
+  },
+  {
+    "timestamp_ms": 3791,
+    "confidence": 0.5225486402155062
+  },
+  {
+    "timestamp_ms": 4041,
+    "confidence": 0.593625411776862
+  },
+  {
+    "timestamp_ms": 4583,
+    "confidence": 0.6010604412312724
+  },
+  {
+    "timestamp_ms": 5000,
+    "confidence": 0.5649837195450991
+  },
+  {
+    "timestamp_ms": 10500,
+    "confidence": 1.0
+  }
+]
