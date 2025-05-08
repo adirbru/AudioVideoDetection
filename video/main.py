@@ -256,7 +256,12 @@ class SoundActionDetector:
             for i, frame_info in enumerate(frame_data):
                 frame = frame_info['frame']
                 # Only draw indicators on peak frames
-                if i < len(frame_data) - 1 and frame_diffs[i]/frame_diffs[max(i-1, 0)] < 0.5 and i-1 not in action_timestamps:
+                if (i < len(frame_data) - 1 # Not reaching the end
+                        and (frame_diffs[i]/frame_diffs[max(i-1, 0)] < 0.5 # Sharp decrease in motion
+                            or frame_diffs[i] / frame_diffs[max(i-2, 0)] < 0.5  # Sharp decrease in motion
+                        )
+                        and frame_diffs[i] - frame_diffs[max(i-1, 0)] < -0.2  # Prevent being too sensitive
+                        and i-1 not in action_timestamps):
                     confidence = float(round(1 - frame_diffs[i]/frame_diffs[max(i-1, 0)], 3))
 
                     # Add timestamp and confidence
