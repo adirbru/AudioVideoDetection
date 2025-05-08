@@ -8,7 +8,7 @@ to determine if a video is real or artificially manipulated.
 Usage:
     python av_classifier.py --video_json path/to/video_peaks.json --audio_json path/to/audio_peaks.json [options]
 
-Author: Claude
+Author: Gal Porat (assisted by Claude AI)
 Date: May 8, 2025
 """
 
@@ -37,6 +37,7 @@ class AVClassifier:
         self.threshold_ms = threshold_ms
         self.match_tolerance = match_tolerance
         self.video_peaks = []
+        self.video_confidences = []  # Store confidence values from video peaks
         self.audio_peaks = []
         self.matched_pairs = []
         self.time_differences = []
@@ -60,13 +61,15 @@ class AVClassifier:
         try:
             with open(video_json_path, 'r') as video_file:
                 video_data = json.load(video_file)
-                # Adjust the following line based on your actual JSON structure
-                self.video_peaks = video_data.get('peaks', [])
+                # Extract video timestamps in seconds (already in seconds)
+                self.video_peaks = [float(entry['timestamp_ms']) for entry in video_data]
+                # Store confidence values if needed for future use
+                self.video_confidences = [entry.get('confidence', 1.0) for entry in video_data]
 
             with open(audio_json_path, 'r') as audio_file:
                 audio_data = json.load(audio_file)
-                # Adjust the following line based on your actual JSON structure
-                self.audio_peaks = audio_data.get('peaks', [])
+                # Extract audio timestamps in seconds (converting from string to float)
+                self.audio_peaks = [float(entry['timestamp_ms']) for entry in audio_data]
 
             print(f"Loaded {len(self.video_peaks)} video peaks and {len(self.audio_peaks)} audio peaks")
             return self.video_peaks, self.audio_peaks
@@ -85,10 +88,12 @@ class AVClassifier:
         """
         Match audio and video peaks based on temporal proximity.
         This uses a greedy algorithm to match peaks in order while allowing
-        for some tolerance in matching.
+        for some tolerance in matching. Works with different numbers of peaks
+        in the audio and video files.
 
         Returns:
             List of (video_timestamp, audio_timestamp) matched pairs
+            Each timestamp is in seconds
         """
         if not self.video_peaks or not self.audio_peaks:
             raise ValueError("Video and audio peaks must be loaded before matching")
@@ -101,29 +106,31 @@ class AVClassifier:
         unmatched_video = []
         unmatched_audio = []
 
-        # Use a two-pointer approach to match peaks
-        v_idx, a_idx = 0, 0
-        while v_idx < len(video_peaks) and a_idx < len(audio_peaks):
-            v_time = video_peaks[v_idx]
-            a_time = audio_peaks[a_idx]
+        # Use a greedy matching algorithm that works with different numbers of peaks
+        # For each video peak, find the closest audio peak within tolerance
+        for v_time in video_peaks:
+            best_match = None
+            best_diff = float('inf')
+            best_idx = -1
 
-            # If peaks are within tolerance, consider them a match
-            if abs(v_time - a_time) <= self.match_tolerance:
-                matched_pairs.append((v_time, a_time))
-                v_idx += 1
-                a_idx += 1
-            # If video peak is earlier, move video pointer forward
-            elif v_time < a_time:
-                unmatched_video.append(v_time)
-                v_idx += 1
-            # If audio peak is earlier, move audio pointer forward
+            # Find the closest audio peak within tolerance
+            for i, a_time in enumerate(audio_peaks):
+                diff = abs(v_time - a_time)
+                if diff <= self.match_tolerance and diff < best_diff:
+                    best_match = a_time
+                    best_diff = diff
+                    best_idx = i
+
+            # If found a match, add to matched pairs and remove the audio peak (to prevent duplicate matching)
+            if best_match is not None:
+                matched_pairs.append((v_time, best_match))
+                # Remove the matched audio peak to prevent matching it again
+                audio_peaks.pop(best_idx)
             else:
-                unmatched_audio.append(a_time)
-                a_idx += 1
+                unmatched_video.append(v_time)
 
-        # Add remaining unmatched peaks
-        unmatched_video.extend(video_peaks[v_idx:])
-        unmatched_audio.extend(audio_peaks[a_idx:])
+        # Any remaining audio peaks are unmatched
+        unmatched_audio = audio_peaks
 
         print(f"Matched {len(matched_pairs)} peak pairs")
         print(f"Unmatched: {len(unmatched_video)} video peaks, {len(unmatched_audio)} audio peaks")
@@ -148,9 +155,13 @@ class AVClassifier:
 
         return time_diffs_ms
 
-    def analyze_differences(self) -> Dict:
+    def analyze_differences(self, use_confidence_weighting: bool = True) -> Dict:
         """
         Analyze the time differences and determine if the video is real or fake.
+
+        Args:
+            use_confidence_weighting: If True, weight time differences by video confidence scores
+                                     when available
 
         Returns:
             Dictionary with analysis results and classification
@@ -163,9 +174,28 @@ class AVClassifier:
             is_real = None  # Undetermined
             confidence = 0.0
         else:
-            # Calculate statistical measures
-            mean_diff = np.mean(self.time_differences)
-            std_diff = np.std(self.time_differences)
+            # Get confidence values for each matched pair
+            confidences = []
+            for v_time, _ in self.matched_pairs:
+                try:
+                    v_idx = self.video_peaks.index(v_time)
+                    confidences.append(self.video_confidences[v_idx])
+                except (ValueError, IndexError):
+                    confidences.append(1.0)  # Default confidence if not found
+
+            # Use weighted statistics if confidence values are available and weighting is enabled
+            if use_confidence_weighting and any(c != 1.0 for c in confidences):
+                weights = np.array(confidences)
+                mean_diff = np.average(self.time_differences, weights=weights)
+                # Weighted standard deviation calculation
+                variance = np.average((self.time_differences - mean_diff) ** 2, weights=weights)
+                std_diff = np.sqrt(variance)
+                print(f"Using confidence-weighted statistics (average confidence: {np.mean(confidences):.2f})")
+            else:
+                # Calculate unweighted statistical measures
+                mean_diff = np.mean(self.time_differences)
+                std_diff = np.std(self.time_differences)
+
             max_diff = np.max(np.abs(self.time_differences))
             range_diff = np.max(self.time_differences) - np.min(self.time_differences)
 
@@ -209,13 +239,26 @@ class AVClassifier:
         # Create output directory if it doesn't exist
         os.makedirs(output_path, exist_ok=True)
 
-        # Save matched pairs and differences to CSV
+        # Save matched pairs and differences to CSV with confidence values
         if self.matched_pairs and self.time_differences:
-            df = pd.DataFrame({
-                'video_timestamp': [vt for vt, _ in self.matched_pairs],
-                'audio_timestamp': [at for _, at in self.matched_pairs],
-                'difference_ms': self.time_differences
-            })
+            # Create DataFrame with matched pairs and their associated confidence values
+            matched_data = []
+            for i, (v_time, a_time) in enumerate(self.matched_pairs):
+                # Find the video peak index to get its confidence
+                try:
+                    v_idx = self.video_peaks.index(v_time)
+                    confidence = self.video_confidences[v_idx]
+                except (ValueError, IndexError):
+                    confidence = None
+
+                matched_data.append({
+                    'video_timestamp': v_time,
+                    'audio_timestamp': a_time,
+                    'difference_ms': self.time_differences[i],
+                    'video_confidence': confidence
+                })
+
+            df = pd.DataFrame(matched_data)
             csv_path = os.path.join(output_path, 'matched_peaks.csv')
             df.to_csv(csv_path, index=False)
             print(f"Saved matched peaks to {csv_path}")
@@ -281,7 +324,8 @@ class AVClassifier:
 
         plt.close('all')  # Close plot windows
 
-    def classify(self, video_json_path: str, audio_json_path: str, output_path: Optional[str] = None) -> Dict:
+    def classify(self, video_json_path: str, audio_json_path: str, output_path: Optional[str] = None,
+                 use_confidence_weighting: bool = True) -> Dict:
         """
         Full classification pipeline: load, match, analyze, and optionally save.
 
@@ -289,6 +333,7 @@ class AVClassifier:
             video_json_path: Path to video peaks JSON file
             audio_json_path: Path to audio peaks JSON file
             output_path: Optional directory to save results and visualizations
+            use_confidence_weighting: If True, weight time differences by video confidence scores
 
         Returns:
             Classification result dictionary
@@ -296,7 +341,7 @@ class AVClassifier:
         self.load_peaks(video_json_path, audio_json_path)
         self.match_peaks()
         self.calculate_time_differences()
-        result = self.analyze_differences()
+        result = self.analyze_differences(use_confidence_weighting=use_confidence_weighting)
 
         if output_path:
             self.save_results(output_path)
@@ -324,12 +369,19 @@ def main():
                         help='Maximum acceptable standard deviation in ms (default: 100.0)')
     parser.add_argument('--tolerance', type=float, default=0.5,
                         help='Maximum time difference to consider peaks as matching in seconds (default: 0.5)')
+    parser.add_argument('--no-confidence-weighting', action='store_true',
+                        help='Disable using confidence values from video peaks for weighted analysis')
 
     args = parser.parse_args()
 
     # Create and run classifier
     classifier = AVClassifier(threshold_ms=args.threshold, match_tolerance=args.tolerance)
-    classifier.classify(args.video_json, args.audio_json, args.output)
+    classifier.classify(
+        args.video_json,
+        args.audio_json,
+        args.output,
+        use_confidence_weighting=not args.no_confidence_weighting
+    )
 
 
 if __name__ == "__main__":
