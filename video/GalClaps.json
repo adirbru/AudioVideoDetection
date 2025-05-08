@@ -1,0 +1,308 @@
+{
+  "detected_actions": [
+    {
+      "timestamp_ms": 1368,
+      "confidence": 0.32486328702368417
+    },
+    {
+      "timestamp_ms": 1535,
+      "confidence": 0.3588760994934624
+    },
+    {
+      "timestamp_ms": 1802,
+      "confidence": 0.13112866027625875
+    },
+    {
+      "timestamp_ms": 2002,
+      "confidence": 0.13296328176316907
+    },
+    {
+      "timestamp_ms": 2169,
+      "confidence": 0.42519249324897956
+    },
+    {
+      "timestamp_ms": 2336,
+      "confidence": 0.41763670728583246
+    },
+    {
+      "timestamp_ms": 2570,
+      "confidence": 0.14809817238205394
+    },
+    {
+      "timestamp_ms": 2737,
+      "confidence": 0.17148844015594422
+    },
+    {
+      "timestamp_ms": 2937,
+      "confidence": 0.4698361355815466
+    },
+    {
+      "timestamp_ms": 3104,
+      "confidence": 0.46559406572180023
+    },
+    {
+      "timestamp_ms": 3538,
+      "confidence": 0.12233814649900814
+    },
+    {
+      "timestamp_ms": 3705,
+      "confidence": 0.32833568437914495
+    },
+    {
+      "timestamp_ms": 3871,
+      "confidence": 0.3190497834588565
+    },
+    {
+      "timestamp_ms": 4906,
+      "confidence": 0.37797329648926276
+    },
+    {
+      "timestamp_ms": 5073,
+      "confidence": 0.3776103628835864
+    },
+    {
+      "timestamp_ms": 5407,
+      "confidence": 0.18227507445188243
+    },
+    {
+      "timestamp_ms": 5474,
+      "confidence": 0.12245823758694485
+    },
+    {
+      "timestamp_ms": 5574,
+      "confidence": 0.1868033448556797
+    },
+    {
+      "timestamp_ms": 5640,
+      "confidence": 0.15816934646639427
+    },
+    {
+      "timestamp_ms": 6175,
+      "confidence": 0.48324046218760164
+    },
+    {
+      "timestamp_ms": 6341,
+      "confidence": 0.4755870504443946
+    },
+    {
+      "timestamp_ms": 6875,
+      "confidence": 0.12129174834678659
+    },
+    {
+      "timestamp_ms": 7376,
+      "confidence": 0.74759355426213
+    },
+    {
+      "timestamp_ms": 7543,
+      "confidence": 0.7429092629481385
+    },
+    {
+      "timestamp_ms": 7910,
+      "confidence": 0.14843156134376462
+    },
+    {
+      "timestamp_ms": 8077,
+      "confidence": 0.15206866194908075
+    },
+    {
+      "timestamp_ms": 8511,
+      "confidence": 0.49128761168325724
+    },
+    {
+      "timestamp_ms": 8678,
+      "confidence": 0.45084752418710555
+    },
+    {
+      "timestamp_ms": 8878,
+      "confidence": 0.22085855462306578
+    },
+    {
+      "timestamp_ms": 9045,
+      "confidence": 0.18140261113258882
+    },
+    {
+      "timestamp_ms": 9913,
+      "confidence": 0.25216332513606987
+    },
+    {
+      "timestamp_ms": 9980,
+      "confidence": 0.13892579309756212
+    },
+    {
+      "timestamp_ms": 10080,
+      "confidence": 0.3093311699727014
+    },
+    {
+      "timestamp_ms": 10147,
+      "confidence": 0.36290917418433577
+    },
+    {
+      "timestamp_ms": 10247,
+      "confidence": 1.0
+    },
+    {
+      "timestamp_ms": 10414,
+      "confidence": 0.6881902153889887
+    },
+    {
+      "timestamp_ms": 10514,
+      "confidence": 0.2682163324728622
+    },
+    {
+      "timestamp_ms": 10580,
+      "confidence": 0.26734982316683714
+    },
+    {
+      "timestamp_ms": 10647,
+      "confidence": 0.12765985536630364
+    },
+    {
+      "timestamp_ms": 10747,
+      "confidence": 0.3008164729976112
+    },
+    {
+      "timestamp_ms": 10948,
+      "confidence": 0.45824553595490114
+    },
+    {
+      "timestamp_ms": 11048,
+      "confidence": 0.4186100990019214
+    },
+    {
+      "timestamp_ms": 11115,
+      "confidence": 0.5731276208458109
+    },
+    {
+      "timestamp_ms": 11248,
+      "confidence": 0.48564775133352
+    },
+    {
+      "timestamp_ms": 11415,
+      "confidence": 0.37249449148281405
+    },
+    {
+      "timestamp_ms": 11715,
+      "confidence": 0.1477213591985718
+    },
+    {
+      "timestamp_ms": 11982,
+      "confidence": 0.2588984877704488
+    },
+    {
+      "timestamp_ms": 12082,
+      "confidence": 0.2388859757348595
+    },
+    {
+      "timestamp_ms": 12216,
+      "confidence": 0.29736841231357203
+    },
+    {
+      "timestamp_ms": 12316,
+      "confidence": 0.34499238894409534
+    },
+    {
+      "timestamp_ms": 12450,
+      "confidence": 1.0
+    },
+    {
+      "timestamp_ms": 12583,
+      "confidence": 1.0
+    },
+    {
+      "timestamp_ms": 12717,
+      "confidence": 0.29322098407098574
+    },
+    {
+      "timestamp_ms": 12783,
+      "confidence": 0.3790493162153087
+    },
+    {
+      "timestamp_ms": 12917,
+      "confidence": 0.45136215274021035
+    },
+    {
+      "timestamp_ms": 12984,
+      "confidence": 0.5831284595702833
+    },
+    {
+      "timestamp_ms": 13050,
+      "confidence": 0.7638656095323857
+    },
+    {
+      "timestamp_ms": 13117,
+      "confidence": 0.8683966137308056
+    },
+    {
+      "timestamp_ms": 13217,
+      "confidence": 0.7630932194361056
+    },
+    {
+      "timestamp_ms": 13284,
+      "confidence": 0.6927619815772177
+    },
+    {
+      "timestamp_ms": 13351,
+      "confidence": 0.3567440940078913
+    },
+    {
+      "timestamp_ms": 13518,
+      "confidence": 0.7127386979705361
+    },
+    {
+      "timestamp_ms": 14386,
+      "confidence": 0.30584755695943394
+    },
+    {
+      "timestamp_ms": 14552,
+      "confidence": 0.21455235288213048
+    },
+    {
+      "timestamp_ms": 14653,
+      "confidence": 0.3623161630503044
+    },
+    {
+      "timestamp_ms": 14753,
+      "confidence": 1.0
+    },
+    {
+      "timestamp_ms": 14920,
+      "confidence": 1.0
+    },
+    {
+      "timestamp_ms": 15053,
+      "confidence": 0.30670516387061947
+    },
+    {
+      "timestamp_ms": 15120,
+      "confidence": 0.34488813646176725
+    },
+    {
+      "timestamp_ms": 15220,
+      "confidence": 0.48200929103767415
+    },
+    {
+      "timestamp_ms": 15354,
+      "confidence": 0.7195990952590018
+    },
+    {
+      "timestamp_ms": 15420,
+      "confidence": 0.7605988600024008
+    },
+    {
+      "timestamp_ms": 15520,
+      "confidence": 0.7489780859803856
+    },
+    {
+      "timestamp_ms": 15587,
+      "confidence": 0.3644522511855985
+    },
+    {
+      "timestamp_ms": 15687,
+      "confidence": 0.5399050283089214
+    },
+    {
+      "timestamp_ms": 15821,
+      "confidence": 0.699725586533183
+    }
+  ]
+}
