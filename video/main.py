@@ -3,19 +3,11 @@ import numpy as np
 import argparse
 import time
 import json
-from AudioVideoDetection.audio.main import find_peaks
-# from scipy.signal import find_peaks
 from pathlib import Path
 
 
 class SoundActionDetector:
     def __init__(self, sensitivity=0.5):
-        """
-        Initialize the detector with configurable parameters
-
-        Args:
-            sensitivity: Float between 0-1 controlling detection threshold
-        """
         self.sensitivity = sensitivity
         self.motion_history = []
         # Significantly increased weights for better detection
@@ -231,13 +223,6 @@ class SoundActionDetector:
 
         print(f"\nAdaptive threshold: {adaptive_threshold:.6f} (mean: {mean_motion:.6f}, std: {std_motion:.6f})")
 
-        # First attempt with normal parameters
-        # _, _, peaks = find_peaks(
-        #     smoothed_diffs,
-        #     threshold=adaptive_threshold,
-        #     hold_for_unify=3
-        # )
-
         # Convert peaks to timestamps and calculate confidence scores
         action_timestamps = []
         if output_path and frame_data:
@@ -252,8 +237,8 @@ class SoundActionDetector:
                 # Only draw indicators on peak frames
                 if (i < len(frame_data) - 1 # Not reaching the end
                         and min(frame_diffs[i]/frame_diffs[max(i-1, 0)], frame_diffs[max(i+1, 0)]/frame_diffs[max(i-1, 0)]) < 0.5 # Sharp decrease in motion
-                        # and min(frame_diffs[i] - frame_diffs[max(i-1, 0)], frame_diffs[max(i+1, 0)]/frame_diffs[max(i-1, 0)]) < -0.12  # Prevent being too sensitive
-                        and (not action_timestamps or i - action_timestamps[-1][0] > 5)):
+                        and (not action_timestamps or i - action_timestamps[-1][0] > 5) # Haven't added a similar frame b
+                ):
                     confidence = min(1, float(abs(round(1 - frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]), 3))))
 
                     # Add timestamp and confidence
