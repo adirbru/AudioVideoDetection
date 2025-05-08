@@ -84,56 +84,42 @@ class AVClassifier:
     def match_peaks(self) -> List[Tuple[float, float]]:
         """
         Match audio and video peaks based on temporal proximity.
-        This uses a greedy algorithm to match peaks in order while allowing
-        for some tolerance in matching. Works with different numbers of peaks
-        in the audio and video files.
+        This version uses a symmetric greedy strategy that finds the best global matches
+        within a tolerance window to minimize total time difference.
 
         Returns:
             List of (video_timestamp, audio_timestamp) matched pairs
-            Each timestamp is in seconds
         """
         if not self.video_peaks or not self.audio_peaks:
             raise ValueError("Video and audio peaks must be loaded before matching")
 
-        # Sort peaks (just in case they're not already sorted)
         video_peaks = sorted(self.video_peaks)
         audio_peaks = sorted(self.audio_peaks)
 
         matched_pairs = []
-        unmatched_video = []
-        unmatched_audio = []
+        used_audio = set()
 
-        # Use a greedy matching algorithm that works with different numbers of peaks
-        # For each video peak, find the closest audio peak within tolerance
         for v_time in video_peaks:
-            best_match = None
-            best_diff = float('inf')
-            best_idx = -1
+            # Filter audio peaks not used yet and within tolerance
+            candidates = [(i, a_time) for i, a_time in enumerate(audio_peaks)
+                          if i not in used_audio and abs(a_time - v_time) <= self.match_tolerance]
 
-            # Find the closest audio peak within tolerance
-            for i, a_time in enumerate(audio_peaks):
-                diff = abs(v_time - a_time)
-                if diff <= self.match_tolerance and diff < best_diff:
-                    best_match = a_time
-                    best_diff = diff
-                    best_idx = i
+            if candidates:
+                # Pick the closest audio peak
+                i_best, a_best = min(candidates, key=lambda x: abs(x[1] - v_time))
+                matched_pairs.append((v_time, a_best))
+                used_audio.add(i_best)
 
-            # If found a match, add to matched pairs and remove the audio peak (to prevent duplicate matching)
-            if best_match is not None:
-                matched_pairs.append((v_time, best_match))
-                # Remove the matched audio peak to prevent matching it again
-                audio_peaks.pop(best_idx)
-            else:
-                unmatched_video.append(v_time)
+        self.matched_pairs = matched_pairs
 
-        # Any remaining audio peaks are unmatched
-        unmatched_audio = audio_peaks
+        unmatched_video = [v for v in video_peaks if v not in [vp for vp, _ in matched_pairs]]
+        unmatched_audio = [a for i, a in enumerate(audio_peaks) if i not in used_audio]
 
         print(f"Matched {len(matched_pairs)} peak pairs")
         print(f"Unmatched: {len(unmatched_video)} video peaks, {len(unmatched_audio)} audio peaks")
 
-        self.matched_pairs = matched_pairs
         return matched_pairs
+
 
     def calculate_time_differences(self) -> List[float]:
         """
