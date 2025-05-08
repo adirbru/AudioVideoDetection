@@ -1,11 +1,11 @@
 import json
-import scipy.signal
-from pydub import AudioSegment, silence
-import wave
-import numpy as np
-from scipy.io import wavfile
+
 import matplotlib.pyplot as plt
 import numba as nb
+import numpy as np
+from scipy.io import wavfile
+
+
 def plot(abs_samples, sample_rate, threshold=0, starts=[], ends=[]):
     time_axis = np.linspace(0, len(abs_samples) / sample_rate, num=len(abs_samples))
 
@@ -24,7 +24,6 @@ def plot(abs_samples, sample_rate, threshold=0, starts=[], ends=[]):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
-import scipy.signal as signal
 
 
 @nb.njit
