@@ -14,6 +14,8 @@ Date: May 8, 2025
 
 import json
 import argparse
+import pathlib
+
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Tuple, Optional
@@ -83,43 +85,43 @@ class AVClassifier:
 
     def match_peaks(self) -> List[Tuple[float, float]]:
         """
-        Match audio and video peaks based on temporal proximity.
-        This version uses a symmetric greedy strategy that finds the best global matches
-        within a tolerance window to minimize total time difference.
+        Match video peaks to audio peaks using closest-time logic within a defined tolerance.
 
         Returns:
-            List of (video_timestamp, audio_timestamp) matched pairs
+            List[Tuple[float, float]]: List of matched (video_timestamp, audio_timestamp) pairs
         """
         if not self.video_peaks or not self.audio_peaks:
-            raise ValueError("Video and audio peaks must be loaded before matching")
+            return []
 
-        video_peaks = sorted(self.video_peaks)
-        audio_peaks = sorted(self.audio_peaks)
+        all_pairs = []
+        for video_time in self.video_peaks:
+            for audio_time in self.audio_peaks:
+                diff = abs(video_time - audio_time)
+                if diff <= self.match_tolerance:
+                    all_pairs.append((video_time, audio_time, diff))
 
+        # Sort by smallest difference
+        all_pairs.sort(key=lambda x: x[2])
+
+        matched_video = set()
+        matched_audio = set()
         matched_pairs = []
-        used_audio = set()
 
-        for v_time in video_peaks:
-            # Filter audio peaks not used yet and within tolerance
-            candidates = [(i, a_time) for i, a_time in enumerate(audio_peaks)
-                          if i not in used_audio and abs(a_time - v_time) <= self.match_tolerance]
-
-            if candidates:
-                # Pick the closest audio peak
-                i_best, a_best = min(candidates, key=lambda x: abs(x[1] - v_time))
-                matched_pairs.append((v_time, a_best))
-                used_audio.add(i_best)
+        for video_time, audio_time, _ in all_pairs:
+            if video_time not in matched_video and audio_time not in matched_audio:
+                matched_pairs.append((video_time, audio_time))
+                matched_video.add(video_time)
+                matched_audio.add(audio_time)
 
         self.matched_pairs = matched_pairs
 
-        unmatched_video = [v for v in video_peaks if v not in [vp for vp, _ in matched_pairs]]
-        unmatched_audio = [a for i, a in enumerate(audio_peaks) if i not in used_audio]
+        unmatched_video = [v for v in self.video_peaks if v not in matched_video]
+        unmatched_audio = [a for a in self.audio_peaks if a not in matched_audio]
 
         print(f"Matched {len(matched_pairs)} peak pairs")
         print(f"Unmatched: {len(unmatched_video)} video peaks, {len(unmatched_audio)} audio peaks")
 
         return matched_pairs
-
 
     def calculate_time_differences(self) -> List[float]:
         """
@@ -292,7 +294,8 @@ class AVClassifier:
 
         classification = result['classification']
         confidence = result['confidence']
-        print(f"\nCLASSIFICATION RESULT: {classification.upper()} (confidence: {confidence}%)")
+        print("\n" + "*"*30)
+        print(f"CLASSIFICATION RESULT: {classification.upper()} (confidence: {confidence}%)")
         print(f"Matched {result['metrics']['matched_pairs']} audio-video peak pairs")
         print(f"Mean time difference: {result['metrics']['mean_difference_ms']} ms")
         print(f"Standard deviation: {result['metrics']['std_difference_ms']} ms")
@@ -307,7 +310,7 @@ def main():
         description='Classify videos as real or fake based on audio-visual synchronization')
     parser.add_argument('--video_json', required=True, help='Path to JSON file with video peaks')
     parser.add_argument('--audio_json', required=True, help='Path to JSON file with audio peaks')
-    parser.add_argument('--output', default='./results', help='Directory to save results (default: ./results)')
+    parser.add_argument('--output', default=None, help='Directory to save results (default: results_[audio file name])')
     parser.add_argument('--threshold', type=float, default=100.0,
                         help='Maximum acceptable standard deviation in ms (default: 100.0)')
     parser.add_argument('--tolerance', type=float, default=0.5,
@@ -315,8 +318,14 @@ def main():
 
     args = parser.parse_args()
 
+    if args.output:
+        output_dir = args.output
+    else:
+        audio_name = pathlib.Path(args.audio_json).stem
+        output_dir = f"results_{audio_name}"
+
     classifier = AVClassifier(threshold_ms=args.threshold, match_tolerance=args.tolerance)
-    classifier.classify(args.video_json, args.audio_json, args.output)
+    classifier.classify(args.video_json, args.audio_json, output_dir)
 
 
 if __name__ == "__main__":
