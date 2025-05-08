@@ -63,6 +63,7 @@ def find_peaks(abs_arr, threshold, hold_for_unify):
 
 sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav"
 # sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav"
+sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\clap_with_sound.wav"
 skate = "skate" in sound_path
 fps = 29.96
 minimum_diff_frames = 1
@@ -102,5 +103,7 @@ if __name__ == '__main__':
     formatted_times = [{"timestamp_ms": f"{time:.3f}"} for time in starts]
 
     # Export to JSON
-    with open("timestamps.json", "w") as f:
+    name = "skate"
+    name = "man_clap"
+    with open(f"{name}_timestamps.json", "w") as f:
         json.dump(formatted_times, f, indent=2)
