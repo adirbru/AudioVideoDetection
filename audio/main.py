@@ -89,7 +89,7 @@ def write_to_json(starts, name):
     with open(f"{name}.json", "w") as f:
         json.dump(formatted_times, f, indent=2)
 
-name = ["GalClaps", "skateboard", "clap_with_sound", "FakeRedBallBouncingWithAudio"][3]
+name = ["GalClaps", "skateboard", "clap_with_sound", "FakeRedBallBouncingWithAudio", "DroppingDucks"][4]
 
 video_path = str(Path.cwd() / ".." /f"{name}.mp4")
 sound_path = f"{video_path[:-4]}.wav"
