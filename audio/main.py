@@ -62,7 +62,8 @@ def find_peaks(abs_arr, threshold, hold_for_unify):
 
 
 sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav"
-sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav"
+# sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav"
+skate = "skate" in sound_path
 fps = 29.96
 minimum_diff_frames = 1
 minimum_diff_s = minimum_diff_frames / fps
@@ -76,7 +77,7 @@ if __name__ == '__main__':
 
     # Get absolute values of the audio signal
     abs_samples = np.abs(data)
-    threshold = 0.75 * np.max(abs_samples)  # old was max / 2
+    threshold = 0.75 * np.max(abs_samples) if skate else 0.5 * np.max(abs_samples) # old was max / 2
     plot(abs_samples, sound_sample_rate, threshold=threshold)
 
     bool_above_threshold = abs_samples > threshold
