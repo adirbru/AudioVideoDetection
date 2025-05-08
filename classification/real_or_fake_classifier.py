@@ -6,7 +6,7 @@ This module analyzes the temporal relationship between audio and video peaks
 to determine if a video is real or artificially manipulated.
 
 Usage:
-    python av_classifier.py --video_json path/to/video_peaks.json --audio_json path/to/audio_peaks.json [options]
+    python classification/real_or_fake_classifier.py --video_json path/to/video_peaks.json --audio_json path/to/audio_peaks.json [options]
 
 Author: Gal Porat (assisted by Claude AI)
 Date: May 8, 2025
@@ -37,7 +37,6 @@ class AVClassifier:
         self.threshold_ms = threshold_ms
         self.match_tolerance = match_tolerance
         self.video_peaks = []
-        self.video_confidences = []  # Store confidence values from video peaks
         self.audio_peaks = []
         self.matched_pairs = []
         self.time_differences = []
@@ -63,8 +62,6 @@ class AVClassifier:
                 video_data = json.load(video_file)
                 # Extract video timestamps in seconds (already in seconds)
                 self.video_peaks = [float(entry['timestamp_ms']) for entry in video_data]
-                # Store confidence values if needed for future use
-                self.video_confidences = [entry.get('confidence', 1.0) for entry in video_data]
 
             with open(audio_json_path, 'r') as audio_file:
                 audio_data = json.load(audio_file)
@@ -155,13 +152,9 @@ class AVClassifier:
 
         return time_diffs_ms
 
-    def analyze_differences(self, use_confidence_weighting: bool = True) -> Dict:
+    def analyze_differences(self) -> Dict:
         """
         Analyze the time differences and determine if the video is real or fake.
-
-        Args:
-            use_confidence_weighting: If True, weight time differences by video confidence scores
-                                     when available
 
         Returns:
             Dictionary with analysis results and classification
@@ -171,44 +164,22 @@ class AVClassifier:
 
         if len(self.time_differences) < 2:
             print("Warning: Need at least 2 matched pairs for reliable classification")
-            is_real = None  # Undetermined
+            is_real = None
             confidence = 0.0
         else:
-            # Get confidence values for each matched pair
-            confidences = []
-            for v_time, _ in self.matched_pairs:
-                try:
-                    v_idx = self.video_peaks.index(v_time)
-                    confidences.append(self.video_confidences[v_idx])
-                except (ValueError, IndexError):
-                    confidences.append(1.0)  # Default confidence if not found
-
-            # Use weighted statistics if confidence values are available and weighting is enabled
-            if use_confidence_weighting and any(c != 1.0 for c in confidences):
-                weights = np.array(confidences)
-                mean_diff = np.average(self.time_differences, weights=weights)
-                # Weighted standard deviation calculation
-                variance = np.average((self.time_differences - mean_diff) ** 2, weights=weights)
-                std_diff = np.sqrt(variance)
-                print(f"Using confidence-weighted statistics (average confidence: {np.mean(confidences):.2f})")
-            else:
-                # Calculate unweighted statistical measures
-                mean_diff = np.mean(self.time_differences)
-                std_diff = np.std(self.time_differences)
-
+            mean_diff = np.mean(self.time_differences)
+            std_diff = np.std(self.time_differences)
             max_diff = np.max(np.abs(self.time_differences))
             range_diff = np.max(self.time_differences) - np.min(self.time_differences)
 
-            # Check if standard deviation is below threshold
             is_real = std_diff <= self.threshold_ms
 
-            # Calculate confidence based on how far std_diff is from threshold
             if is_real:
                 confidence = min(1.0, 1 - (std_diff / self.threshold_ms))
             else:
                 confidence = min(1.0, (std_diff - self.threshold_ms) / self.threshold_ms)
 
-            confidence = round(confidence * 100, 2)  # Convert to percentage
+            confidence = round(confidence * 100, 2)
 
         result = {
             "classification": "real" if is_real else "fake" if is_real is not None else "undetermined",
@@ -239,26 +210,13 @@ class AVClassifier:
         # Create output directory if it doesn't exist
         os.makedirs(output_path, exist_ok=True)
 
-        # Save matched pairs and differences to CSV with confidence values
+        # Save matched pairs and differences to CSV
         if self.matched_pairs and self.time_differences:
-            # Create DataFrame with matched pairs and their associated confidence values
-            matched_data = []
-            for i, (v_time, a_time) in enumerate(self.matched_pairs):
-                # Find the video peak index to get its confidence
-                try:
-                    v_idx = self.video_peaks.index(v_time)
-                    confidence = self.video_confidences[v_idx]
-                except (ValueError, IndexError):
-                    confidence = None
-
-                matched_data.append({
-                    'video_timestamp': v_time,
-                    'audio_timestamp': a_time,
-                    'difference_ms': self.time_differences[i],
-                    'video_confidence': confidence
-                })
-
-            df = pd.DataFrame(matched_data)
+            df = pd.DataFrame({
+                'video_timestamp': [vt for vt, _ in self.matched_pairs],
+                'audio_timestamp': [at for _, at in self.matched_pairs],
+                'difference_ms': self.time_differences
+            })
             csv_path = os.path.join(output_path, 'matched_peaks.csv')
             df.to_csv(csv_path, index=False)
             print(f"Saved matched peaks to {csv_path}")
@@ -322,7 +280,7 @@ class AVClassifier:
         plt.savefig(timeline_path)
         print(f"Saved timeline plot to {timeline_path}")
 
-        plt.close('all')  # Close plot windows
+        plt.close('all')
 
     def classify(self, video_json_path: str, audio_json_path: str, output_path: Optional[str] = None,
                  use_confidence_weighting: bool = True) -> Dict:
@@ -341,12 +299,11 @@ class AVClassifier:
         self.load_peaks(video_json_path, audio_json_path)
         self.match_peaks()
         self.calculate_time_differences()
-        result = self.analyze_differences(use_confidence_weighting=use_confidence_weighting)
+        result = self.analyze_differences()
 
         if output_path:
             self.save_results(output_path)
 
-        # Print summary of classification
         classification = result['classification']
         confidence = result['confidence']
         print(f"\nCLASSIFICATION RESULT: {classification.upper()} (confidence: {confidence}%)")
@@ -369,19 +326,11 @@ def main():
                         help='Maximum acceptable standard deviation in ms (default: 100.0)')
     parser.add_argument('--tolerance', type=float, default=0.5,
                         help='Maximum time difference to consider peaks as matching in seconds (default: 0.5)')
-    parser.add_argument('--no-confidence-weighting', action='store_true',
-                        help='Disable using confidence values from video peaks for weighted analysis')
 
     args = parser.parse_args()
 
-    # Create and run classifier
     classifier = AVClassifier(threshold_ms=args.threshold, match_tolerance=args.tolerance)
-    classifier.classify(
-        args.video_json,
-        args.audio_json,
-        args.output,
-        use_confidence_weighting=not args.no_confidence_weighting
-    )
+    classifier.classify(args.video_json, args.audio_json, args.output)
 
 
 if __name__ == "__main__":
