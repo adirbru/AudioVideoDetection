@@ -237,7 +237,7 @@ class SoundActionDetector:
                 # Only draw indicators on peak frames
                 if (i < len(frame_data) - 1 # Not reaching the end
                         and min(frame_diffs[i]/frame_diffs[max(i-1, 0)], frame_diffs[max(i+1, 0)]/frame_diffs[max(i-1, 0)]) < 0.5 # Sharp decrease in motion
-                        and (not action_timestamps or i - action_timestamps[-1][0] > 5) # Haven't added a similar frame b
+                        and (not action_timestamps or i - action_timestamps[-1][0] > 5)
                 ):
                     confidence = min(1, float(abs(round(1 - frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]), 3))))
 
@@ -322,36 +322,21 @@ class SoundActionDetector:
         print(f"Results saved to {output_path}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Detect sound-inducing actions in a silent video')
-    parser.add_argument('input_video', help='Path to the input video file')
-    parser.add_argument('--output', '-o', help='Path to save detection results JSON')
-    parser.add_argument('--visualization', '-v', help='Path to save visualization video')
-    parser.add_argument('--sensitivity', '-s', type=float, default=0.7,  # Higher default sensitivity
-                        help='Detection sensitivity (0.0-1.0)')
-    parser.add_argument('--debug', '-d', action='store_true',
-                        help='Show debug information and save motion graph')
-
-    args = parser.parse_args()
-
-    # Set default output path if not specified
-    if not args.output:
-        output_path = Path.cwd() / 'video' / Path(args.input_video).with_suffix('.json').name
-    else:
-        output_path = args.output
+def video_peaks_detection(video_name: str):
+    output_path = Path.cwd() / 'video' / Path(video_name).with_suffix('.json').name
 
     # Initialize and run detector
-    detector = SoundActionDetector(sensitivity=args.sensitivity)
-    action_timestamps = detector.process_video(args.input_video, Path.cwd() / 'video' / Path(args.input_video).with_suffix('.annotated.mp4').name)
+    detector = SoundActionDetector(sensitivity=0.7)
+    action_timestamps = detector.process_video(video_name, Path.cwd() / 'video' / Path(video_name).with_suffix('.annotated.mp4').name)
     detector.save_results(action_timestamps, output_path)
 
     # Debug visualization if requested
-    if args.debug and action_timestamps:
+    if action_timestamps:
         try:
             import matplotlib.pyplot as plt
 
             # Get video properties
-            cap = cv2.VideoCapture(args.input_video)
+            cap = cv2.VideoCapture(video_name)
             fps = cap.get(cv2.CAP_PROP_FPS)
             cap.release()
 
@@ -376,7 +361,7 @@ def main():
             # Add labels
             plt.xlabel('Time (seconds)')
             plt.ylabel('Motion Magnitude')
-            plt.title(f'Motion Analysis: {Path(args.input_video).name}')
+            plt.title(f'Motion Analysis: {Path(video_name).name}')
 
             # Add detection threshold
             if hasattr(detector, 'adaptive_threshold'):
@@ -387,7 +372,7 @@ def main():
             plt.legend()
 
             # Save plot
-            plot_path = Path(args.input_video).with_suffix('.motion_analysis.png')
+            plot_path = Path(video_name).with_suffix('.motion_analysis.png')
             plt.savefig(str(plot_path))
             print(f"Motion analysis graph saved to {plot_path}")
 
