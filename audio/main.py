@@ -1,8 +1,9 @@
+from pydub import AudioSegment, silence
 import wave
 import numpy as np
 from scipy.io import wavfile
 import matplotlib.pyplot as plt
-
+import numba as nb
 def plot(abs_samples, sample_rate, threshold=0):
     time_axis = np.linspace(0, len(abs_samples) / sample_rate, num=len(abs_samples))
 
@@ -17,7 +18,43 @@ def plot(abs_samples, sample_rate, threshold=0):
     plt.tight_layout()
     plt.show()
 
+
+@nb.njit
+def find_peaks(abs_arr, threshold, hold_for_unify):
+    starts, ends = [], []
+    in_peak = False
+    peak_start = 0
+
+    for i, val in enumerate(abs_arr):
+        if val >= threshold:
+            if not in_peak:
+                peak_start = i
+                in_peak = True
+        else:
+            if in_peak:
+                peak_end = i - 1
+                # Unify with previous peak if close enough
+                if starts and (peak_start - ends[-1]) <= hold_for_unify:
+                    ends[-1] = peak_end  # Extend previous peak
+                else:
+                    starts.append(peak_start)
+                    ends.append(peak_end)
+                in_peak = False
+
+    # Handle case where array ends while in a peak
+    if in_peak:
+        peak_end = len(abs_arr) - 1
+        if starts and (peak_start - ends[-1]) <= hold_for_unify:
+            ends[-1] = peak_end
+        else:
+            starts.append(peak_start)
+            ends.append(peak_end)
+
+    return np.array(starts), np.array(ends)
+
+
 sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav"
+sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav"
 fps = 29.96
 minimum_diff_frames = 1
 minimum_diff_s = minimum_diff_frames / fps
@@ -44,13 +81,10 @@ if __name__ == '__main__':
 
     og_indices = indices_above_threshold[1:][valid_diffs]
     valid_times = og_indices / sound_sample_rate
-    print(valid_times)
-    from pydub import AudioSegment, silence
+    print(f"{valid_times = }")
 
-    audio = AudioSegment.from_wav("example.wav")
-    chunks = silence.detect_nonsilent(audio, min_silence_len=500, silence_thresh=-40)
+    ind_starts, ind_ends = find_peaks(abs_samples, threshold=threshold, hold_for_unify=minimum_diff_s * sound_sample_rate)
+    starts, ends = ind_starts / sound_sample_rate, ind_ends / sound_sample_rate
+    for s, e in zip(starts, ends):
+        print(s, e)
 
-
-
-    for start, end in chunks:
-        print(f"Sound from {start / 1000:.2f}s to {end / 1000:.2f}s")
