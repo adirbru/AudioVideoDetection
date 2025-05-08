@@ -20,7 +20,7 @@ class SoundActionDetector:
         self.motion_history = []
         # Significantly increased weights for better detection
         self.vertical_motion_weight = 1.0 + (2.0 * sensitivity)
-        self.horizontal_motion_weight = 3.0 + (8.0 * sensitivity)  # Even higher weight for horizontal motion
+        self.horizontal_motion_weight = 1.0 + (2.0 * sensitivity)  # Even higher weight for horizontal motion
 
     def process_video(self, video_path, output_path=None):
         """
@@ -239,7 +239,7 @@ class SoundActionDetector:
         # )
 
         # Convert peaks to timestamps and calculate confidence scores
-        action_timestamps = {}
+        action_timestamps = []
         if output_path and frame_data:
             print("Creating visualization with detected sound events...")
             # Create new video writer for the visualization
@@ -251,14 +251,14 @@ class SoundActionDetector:
                 frame = frame_info['frame']
                 # Only draw indicators on peak frames
                 if (i < len(frame_data) - 1 # Not reaching the end
-                        and frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]) < 0.5 # Sharp decrease in motion
-                        and frame_diffs[i] - max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]) < -0.12  # Prevent being too sensitive
-                        and i-1 not in action_timestamps and i-2 not in action_timestamps):
-                    confidence = float(round(1 - frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]), 3))
+                        and min(frame_diffs[i]/frame_diffs[max(i-1, 0)], frame_diffs[max(i+1, 0)]/frame_diffs[max(i-1, 0)]) < 0.5 # Sharp decrease in motion
+                        # and min(frame_diffs[i] - frame_diffs[max(i-1, 0)], frame_diffs[max(i+1, 0)]/frame_diffs[max(i-1, 0)]) < -0.12  # Prevent being too sensitive
+                        and (not action_timestamps or i - action_timestamps[-1][0] > 5)):
+                    confidence = min(1, float(abs(round(1 - frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]), 3))))
 
                     # Add timestamp and confidence
                     timestamp_ms = round(i / fps, 3)
-                    action_timestamps[i] = (timestamp_ms, confidence)
+                    action_timestamps.append((i, timestamp_ms, confidence))
 
                     # Draw confidence indicator
                     confidence_color = (
@@ -328,8 +328,7 @@ class SoundActionDetector:
         results = [
                 {
                     "timestamp_ms": ts,
-                    "confidence": conf
-                } for ts, conf in action_timestamps.values()
+                } for frame, ts, conf in action_timestamps
             ]
 
         with open(output_path, 'w') as f:
@@ -384,7 +383,7 @@ def main():
             plt.plot(time_axis, smoothed_data)
 
             # Mark detected actions
-            action_times = [ts for ts, _ in action_timestamps.values()]  # Convert ms to seconds
+            action_times = [ts for frame, ts, confidence in action_timestamps]  # Convert ms to seconds
             action_values = [smoothed_data[int(t * fps)] if int(t * fps) < len(smoothed_data) else 0
                              for t in action_times]
             plt.scatter(action_times, action_values, color='red', s=50)
