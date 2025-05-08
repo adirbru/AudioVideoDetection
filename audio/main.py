@@ -1,3 +1,5 @@
+import numpy as np
+import numba as nb
 import json
 
 import matplotlib.pyplot as plt
@@ -26,8 +28,6 @@ def plot(abs_samples, sample_rate, threshold=0, starts=[], ends=[]):
     plt.show()
 
 
-import numpy as np
-import numba as nb
 
 @nb.njit
 def find_peaks(abs_arr, threshold, hold_for_unify):
@@ -73,63 +73,76 @@ def find_peaks(abs_arr, threshold, hold_for_unify):
             max_indices.append(max_ind_in_peak)
 
     return np.array(starts), np.array(ends), np.array(max_indices)
-
-name = "gal_clap"
-id_to_wav = {
-    "gal_clap": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav",
-    "skate": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav",
-    "man_clap": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\clap_with_sound.wav"
-}
-# sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav"
-# sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav"
-# sound_path = r"C:\Users\USER\PycharmProjects\AudioVideoDetection\clap_with_sound.wav"
-sound_path = id_to_wav[name]
-skate = "skate" in sound_path
-
-
-
-fps = 29.96
-minimum_diff_frames = 1
-minimum_diff_s = minimum_diff_frames / fps
-# Load WAV file
-write = False
-if __name__ == '__main__':
+def get_abs_sound(sound_path):
     sound_sample_rate, data = wavfile.read(sound_path)
-
     # If stereo, convert to mono by averaging channels
     if len(data.shape) > 1:
         data = data.mean(axis=1)
-
     # Get absolute values of the audio signal
     abs_samples = np.abs(data)
-    threshold = 0.75 * np.max(abs_samples) if skate else 0.5 * np.max(abs_samples) # old was max / 2
-    plot(abs_samples, sound_sample_rate, threshold=threshold)
+    return abs_samples, sound_sample_rate
 
-    bool_above_threshold = abs_samples > threshold
-    indices_above_threshold = np.where(bool_above_threshold)[0]
-    diff_of_indices = np.diff(indices_above_threshold)
+def write_to_json(starts, name):
+    formatted_times = [{"timestamp_ms": f"{time:.3f}"} for time in starts]
+    with open(f"{name}.json", "w") as f:
+        json.dump(formatted_times, f, indent=2)
 
-    valid_diffs = diff_of_indices > minimum_diff_s * sound_sample_rate
+name = "clap_with_sound"
+id_to_wav = {
+    "GalClaps": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav",
+    "skateboard": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav",
+    "clap_with_sound": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\clap_with_sound.wav"
+}
 
-    print(f"{len(valid_diffs) = }")
+sound_path = id_to_wav[name]
+fps = 24
+minimum_diff_frames = 1
+minimum_diff_s = minimum_diff_frames / fps
+FACTOR_TOO_BIG = 2
+# Load WAV file
+write = True
+def main():
+    abs_samples, sound_sample_rate = get_abs_sound(sound_path)
+    # threshold = 0.75 * np.max(abs_samples) if skate else 0.5 * np.max(abs_samples)
+    last_peaks_num = 0
+    last_threshold = np.max(abs_samples)
+    for i, threshold in enumerate(np.arange(np.max(abs_samples), np.max(abs_samples) / 10, -np.max(abs_samples) / 10)):
+        starts, ends = get_starts_and_ends(abs_samples, sound_sample_rate, threshold)
+        plot(abs_samples, sample_rate=sound_sample_rate, threshold=threshold, starts=list(starts), ends=list(ends))
+        current_peaks_num = len(starts)
 
-    og_indices = indices_above_threshold[1:][valid_diffs]
-    valid_times = og_indices / sound_sample_rate
-    print(f"{valid_times = }")
+        if current_peaks_num < last_peaks_num:
+            threshold = last_threshold
+            break
+        elif current_peaks_num <= 10:
+            pass
+        elif current_peaks_num > last_peaks_num * 5:
+            threshold = last_threshold
+            break
 
-    ind_starts, ind_ends, _ = find_peaks(abs_samples, threshold=threshold, hold_for_unify=minimum_diff_s * sound_sample_rate)
+        if np.max(ends - starts) > minimum_diff_s * FACTOR_TOO_BIG:
+            threshold = last_threshold
+            break
+
+        last_peaks_num = current_peaks_num
+        last_threshold = threshold
+
+    starts, ends = get_starts_and_ends(abs_samples, sound_sample_rate, threshold)
+    plot(abs_samples, sample_rate=sound_sample_rate, threshold=threshold, starts=list(starts), ends=list(ends))
+    print(f"{i = }")
+    if write:
+        write_to_json(starts, name)
+
+
+def get_starts_and_ends(abs_samples, sound_sample_rate, threshold):
+    ind_starts, ind_ends, _ = find_peaks(abs_samples, threshold=threshold,
+                                         hold_for_unify=minimum_diff_s * sound_sample_rate)
     starts, ends = ind_starts / sound_sample_rate, ind_ends / sound_sample_rate
     for s, e in zip(starts, ends):
         print(s, e)
+    print()
+    return starts, ends
 
-    plot(abs_samples, sample_rate=sound_sample_rate, threshold=threshold, starts=list(starts), ends=list(ends))
 
-    formatted_times = [{"timestamp_ms": f"{time:.3f}"} for time in starts]
-
-    # Export to JSON
-
-    if write:
-        with open(f"{name}_timestamps.json", "w") as f:
-            json.dump(formatted_times, f, indent=2)
-    # with open(f"{name}_timestamps.json", "w") as f:
-    #     json.dump(formatted_times, f, indent=2)
+if __name__ == '__main__':
+    main()
