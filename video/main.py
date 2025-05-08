@@ -3,8 +3,8 @@ import numpy as np
 import argparse
 import time
 import json
-# from AudioVideoDetection.audio import find_peaks
-from scipy.signal import find_peaks
+from AudioVideoDetection.audio.main import find_peaks
+# from scipy.signal import find_peaks
 from pathlib import Path
 
 
@@ -238,13 +238,10 @@ class SoundActionDetector:
         print(f"\nAdaptive threshold: {adaptive_threshold:.6f} (mean: {mean_motion:.6f}, std: {std_motion:.6f})")
 
         # First attempt with normal parameters
-        # _, _, peaks = find_peaks(smoothed_diffs)
-        # First attempt with normal parameters
-        peaks, peak_properties = find_peaks(
+        _, _, peaks = find_peaks(
             smoothed_diffs,
-            height=adaptive_threshold * (0.1 + 0.2 * self.sensitivity),
-            distance=int(fps / 10),
-            prominence=adaptive_threshold * (0.02 + 0.1 * self.sensitivity)
+            threshold=adaptive_threshold,
+            hold_for_unify=3
         )
 
         # Convert peaks to timestamps and calculate confidence scores
@@ -268,7 +265,7 @@ class SoundActionDetector:
 
                     # Add timestamp and confidence
                     if confidence > 0.5:
-                        timestamp_ms = int((i * 1000) / fps)
+                        timestamp_ms = round(i / fps, 3)
                         action_timestamps.append((timestamp_ms, confidence))
 
                         # Draw confidence indicator
@@ -302,6 +299,8 @@ class SoundActionDetector:
 
                 # Add motion score
                 cv2.putText(frame, f"Motion: {frame_diffs[i]:.6f}", (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(frame, f"Difference: {frame_diffs[i]-frame_diffs[max(0, i-1)]:.6f}", (300, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
                 vis_out.write(frame)
@@ -369,7 +368,7 @@ def main():
 
     # Initialize and run detector
     detector = SoundActionDetector(sensitivity=args.sensitivity, min_area=args.min_area)
-    action_timestamps = detector.process_video(args.input_video, args.input_video.replace('mp4', 'output.mp4'))
+    action_timestamps = detector.process_video(args.input_video, Path.cwd() / 'video' / Path(args.input_video).with_suffix('.annotated.mp4').name)
     detector.save_results(action_timestamps, output_path)
 
     # Debug visualization if requested
