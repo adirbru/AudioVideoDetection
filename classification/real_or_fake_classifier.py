@@ -14,13 +14,12 @@ Date: May 8, 2025
 
 import json
 import argparse
-import pathlib
-
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Tuple, Optional
 import matplotlib.pyplot as plt
 import os
+import pathlib
 
 
 class AVClassifier:
@@ -62,12 +61,10 @@ class AVClassifier:
         try:
             with open(video_json_path, 'r') as video_file:
                 video_data = json.load(video_file)
-                # Extract video timestamps in seconds (already in seconds)
                 self.video_peaks = [float(entry['timestamp_ms']) for entry in video_data]
 
             with open(audio_json_path, 'r') as audio_file:
                 audio_data = json.load(audio_file)
-                # Extract audio timestamps in seconds (converting from string to float)
                 self.audio_peaks = [float(entry['timestamp_ms']) for entry in audio_data]
 
             print(f"Loaded {len(self.video_peaks)} video peaks and {len(self.audio_peaks)} audio peaks")
@@ -100,7 +97,6 @@ class AVClassifier:
                 if diff <= self.match_tolerance:
                     all_pairs.append((video_time, audio_time, diff))
 
-        # Sort by smallest difference
         all_pairs.sort(key=lambda x: x[2])
 
         matched_video = set()
@@ -134,10 +130,8 @@ class AVClassifier:
         if not self.matched_pairs:
             raise ValueError("No matched pairs available. Run match_peaks() first.")
 
-        # Calculate differences: positive if audio comes after video
         time_diffs_ms = [(audio - video) * 1000 for video, audio in self.matched_pairs]
         self.time_differences = time_diffs_ms
-
         return time_diffs_ms
 
     def analyze_differences(self) -> Dict:
@@ -157,16 +151,9 @@ class AVClassifier:
         else:
             mean_diff = np.mean(self.time_differences)
             std_diff = np.std(self.time_differences)
-            max_diff = np.max(np.abs(self.time_differences))
-            range_diff = np.max(self.time_differences) - np.min(self.time_differences)
-
             is_real = std_diff <= self.threshold_ms
 
-            if is_real:
-                confidence = min(1.0, 1 - (std_diff / self.threshold_ms))
-            else:
-                confidence = min(1.0, (std_diff - self.threshold_ms) / self.threshold_ms)
-
+            confidence = min(1.0, abs(std_diff - self.threshold_ms) / self.threshold_ms)
             confidence = round(confidence * 100, 2)
 
         result = {
@@ -175,8 +162,7 @@ class AVClassifier:
             "metrics": {
                 "matched_pairs": len(self.matched_pairs),
                 "mean_difference_ms": round(float(np.mean(self.time_differences)), 2),
-                "std_difference_ms": round(float(np.std(self.time_differences)), 2) if len(
-                    self.time_differences) > 1 else None,
+                "std_difference_ms": round(float(np.std(self.time_differences)), 2) if len(self.time_differences) > 1 else None,
                 "min_difference_ms": round(float(np.min(self.time_differences)), 2),
                 "max_difference_ms": round(float(np.max(self.time_differences)), 2),
                 "range_difference_ms": round(float(np.max(self.time_differences) - np.min(self.time_differences)), 2),
@@ -187,6 +173,35 @@ class AVClassifier:
         self.classification_result = result
         return result
 
+    def classify(self, video_json_path: str, audio_json_path: str, output_path: Optional[str] = None) -> Dict:
+        """
+        Full classification pipeline: load, match, analyze, and optionally save.
+
+        Args:
+            video_json_path: Path to video peaks JSON file
+            audio_json_path: Path to audio peaks JSON file
+            output_path: Optional directory to save results and visualizations
+
+        Returns:
+            Classification result dictionary
+        """
+        self.load_peaks(video_json_path, audio_json_path)
+        self.match_peaks()
+        self.calculate_time_differences()
+        result = self.analyze_differences()
+        if output_path:
+            self.save_results(output_path)
+
+        classification = result['classification']
+        confidence = result['confidence']
+        print("\n" + "*" * 30)
+        print(f"CLASSIFICATION RESULT: {classification.upper()} (confidence: {confidence}%)")
+        print(f"Matched {result['metrics']['matched_pairs']} audio-video peak pairs")
+        print(f"Mean time difference: {result['metrics']['mean_difference_ms']} ms")
+        print(f"Standard deviation: {result['metrics']['std_difference_ms']} ms")
+        print(f"Classification threshold: ±{self.threshold_ms} ms\n")
+        return result
+
     def save_results(self, output_path: str, include_plot: bool = True) -> None:
         """
         Save classification results and matched pairs to CSV/JSON files.
@@ -195,10 +210,8 @@ class AVClassifier:
             output_path: Directory to save results
             include_plot: Whether to generate and save visualization plots
         """
-        # Create output directory if it doesn't exist
         os.makedirs(output_path, exist_ok=True)
 
-        # Save matched pairs and differences to CSV
         if self.matched_pairs and self.time_differences:
             df = pd.DataFrame({
                 'video_timestamp': [vt for vt, _ in self.matched_pairs],
@@ -209,53 +222,53 @@ class AVClassifier:
             df.to_csv(csv_path, index=False)
             print(f"Saved matched peaks to {csv_path}")
 
-        # Save classification results to JSON
         if self.classification_result:
             json_path = os.path.join(output_path, 'classification_result.json')
             with open(json_path, 'w') as f:
                 json.dump(self.classification_result, f, indent=4)
             print(f"Saved classification results to {json_path}")
 
-        # Generate and save visualization plots
         if include_plot and self.matched_pairs and self.time_differences:
-            self._generate_plots(output_path)
+            self.plot_time_differences(output_path)
+            self.plot_peaks_timeline(output_path)
 
-    def _generate_plots(self, output_path: str) -> None:
+    def plot_time_differences(self, output_path: str):
         """
-        Generate visualizations of the audio-visual synchronization analysis.
+        Plot the time difference of each matched pair sequentially.
 
         Args:
-            output_path: Directory to save plots
+            output_path: Directory to save the plot
         """
-        # Plot 1: Time differences histogram
-        plt.figure(figsize=(10, 6))
-        plt.hist(self.time_differences, bins=min(20, len(self.time_differences)), alpha=0.7)
-        plt.axvline(x=0, color='red', linestyle='--', alpha=0.7, label='Perfect sync')
-        plt.axvline(x=self.threshold_ms, color='green', linestyle='--', alpha=0.7,
-                    label=f'+{self.threshold_ms}ms threshold')
-        plt.axvline(x=-self.threshold_ms, color='green', linestyle='--', alpha=0.7,
-                    label=f'-{self.threshold_ms}ms threshold')
-        plt.title('Distribution of Audio-Visual Time Differences')
-        plt.xlabel('Time Difference (ms) [Positive = Audio after Video]')
-        plt.ylabel('Frequency')
+        if not self.time_differences:
+            return
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(range(len(self.time_differences)), self.time_differences, marker='o', linestyle='-')
+        plt.axhline(y=0, color='gray', linestyle='--', alpha=0.7)
+        plt.axhline(y=self.threshold_ms, color='green', linestyle='--', alpha=0.7, label=f'+{self.threshold_ms}ms threshold')
+        plt.axhline(y=-self.threshold_ms, color='green', linestyle='--', alpha=0.7, label=f'-{self.threshold_ms}ms threshold')
+        plt.title('Audio-Visual Time Differences Across Matched Pairs')
+        plt.xlabel('Matched Pair Index')
+        plt.ylabel('Time Difference (ms)')
         plt.legend()
         plt.grid(True, alpha=0.3)
-        hist_path = os.path.join(output_path, 'time_diff_histogram.png')
-        plt.savefig(hist_path)
-        print(f"Saved histogram to {hist_path}")
+        path = os.path.join(output_path, 'time_diff_sequence_plot.png')
+        plt.savefig(path)
+        print(f"Saved time difference sequence plot to {path}")
+        plt.close()
 
-        # Plot 2: Timeline of peaks
+    def plot_peaks_timeline(self, output_path: str):
+        """
+        Plot a timeline showing the alignment of video and audio peaks and their connections.
+
+        Args:
+            output_path: Directory to save the plot
+        """
         plt.figure(figsize=(12, 6))
 
-        # Plot all video peaks
-        plt.scatter(self.video_peaks, [1] * len(self.video_peaks),
-                    color='blue', label='Video peaks', marker='o', s=50, alpha=0.7)
+        plt.scatter(self.video_peaks, [1] * len(self.video_peaks), color='blue', label='Video peaks', marker='o', s=50, alpha=0.7)
+        plt.scatter(self.audio_peaks, [0] * len(self.audio_peaks), color='red', label='Audio peaks', marker='x', s=50, alpha=0.7)
 
-        # Plot all audio peaks
-        plt.scatter(self.audio_peaks, [0] * len(self.audio_peaks),
-                    color='red', label='Audio peaks', marker='x', s=50, alpha=0.7)
-
-        # Draw lines between matched pairs
         for v_time, a_time in self.matched_pairs:
             plt.plot([v_time, a_time], [1, 0], 'k-', alpha=0.3)
 
@@ -267,54 +280,20 @@ class AVClassifier:
         timeline_path = os.path.join(output_path, 'peaks_timeline.png')
         plt.savefig(timeline_path)
         print(f"Saved timeline plot to {timeline_path}")
-
-        plt.close('all')
-
-    def classify(self, video_json_path: str, audio_json_path: str, output_path: Optional[str] = None,
-                 use_confidence_weighting: bool = True) -> Dict:
-        """
-        Full classification pipeline: load, match, analyze, and optionally save.
-
-        Args:
-            video_json_path: Path to video peaks JSON file
-            audio_json_path: Path to audio peaks JSON file
-            output_path: Optional directory to save results and visualizations
-            use_confidence_weighting: If True, weight time differences by video confidence scores
-
-        Returns:
-            Classification result dictionary
-        """
-        self.load_peaks(video_json_path, audio_json_path)
-        self.match_peaks()
-        self.calculate_time_differences()
-        result = self.analyze_differences()
-
-        if output_path:
-            self.save_results(output_path)
-
-        classification = result['classification']
-        confidence = result['confidence']
-        print("\n" + "*"*30)
-        print(f"CLASSIFICATION RESULT: {classification.upper()} (confidence: {confidence}%)")
-        print(f"Matched {result['metrics']['matched_pairs']} audio-video peak pairs")
-        print(f"Mean time difference: {result['metrics']['mean_difference_ms']} ms")
-        print(f"Standard deviation: {result['metrics']['std_difference_ms']} ms")
-        print(f"Classification threshold: ±{self.threshold_ms} ms\n")
-
-        return result
+        plt.close()
 
 
 def main():
-    """Parse command line arguments and run the classifier."""
+    """
+    Parse command line arguments and run the classifier.
+    """
     parser = argparse.ArgumentParser(
         description='Classify videos as real or fake based on audio-visual synchronization')
     parser.add_argument('--video_json', required=True, help='Path to JSON file with video peaks')
     parser.add_argument('--audio_json', required=True, help='Path to JSON file with audio peaks')
     parser.add_argument('--output', default=None, help='Directory to save results (default: results_[audio file name])')
-    parser.add_argument('--threshold', type=float, default=100.0,
-                        help='Maximum acceptable standard deviation in ms (default: 100.0)')
-    parser.add_argument('--tolerance', type=float, default=0.5,
-                        help='Maximum time difference to consider peaks as matching in seconds (default: 0.5)')
+    parser.add_argument('--threshold', type=float, default=100.0, help='Maximum acceptable standard deviation in ms (default: 100.0)')
+    parser.add_argument('--tolerance', type=float, default=0.5, help='Maximum time difference to consider peaks as matching in seconds (default: 0.5)')
 
     args = parser.parse_args()
 
