@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import numba as nb
 import json
@@ -6,7 +8,7 @@ import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
 from scipy.io import wavfile
-
+import os
 
 def plot(abs_samples, sample_rate, threshold=0, starts=[], ends=[]):
     time_axis = np.linspace(0, len(abs_samples) / sample_rate, num=len(abs_samples))
@@ -87,14 +89,12 @@ def write_to_json(starts, name):
     with open(f"{name}.json", "w") as f:
         json.dump(formatted_times, f, indent=2)
 
-name = "clap_with_sound"
-id_to_wav = {
-    "GalClaps": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\GalClaps.wav.wav",
-    "skateboard": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\skateboard.wav",
-    "clap_with_sound": r"C:\Users\USER\PycharmProjects\AudioVideoDetection\clap_with_sound.wav"
-}
+name = ["GalClaps", "skateboard", "clap_with_sound"][2]
 
-sound_path = id_to_wav[name]
+video_path = str(Path.cwd() / ".." /f"{name}.mp4")
+sound_path = f"{video_path[:-4]}.wav"
+os.system(f'ffmpeg -y -i {video_path} {sound_path}')
+
 fps = 24
 minimum_diff_frames = 1
 minimum_diff_s = minimum_diff_frames / fps
