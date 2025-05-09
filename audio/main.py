@@ -86,28 +86,29 @@ def get_abs_sound(sound_path):
 
 def write_to_json(starts, name):
     formatted_times = [{"timestamp_ms": f"{time:.3f}"} for time in starts]
-    with open(f"{name}.json", "w") as f:
+    json_name = str(Path.cwd() / 'audio' / Path(name).with_suffix(".json"))
+    with open(json_name, "w") as f:
         json.dump(formatted_times, f, indent=2)
 
-name = ["GalClaps", "skateboard", "clap_with_sound", "FakeRedBallBouncingWithAudio", "DroppingDucks"][4]
 
-video_path = str(Path.cwd() / ".." /f"{name}.mp4")
-sound_path = f"{video_path[:-4]}.wav"
-os.system(f'ffmpeg -y -i {video_path} {sound_path}')
+def audio_peaks_detection(video_name: str):
+    video_path = str(Path.cwd() / video_name)
+    sound_path = f"{video_path[:-4]}.wav"
+    os.system(f'ffmpeg -y -i "{video_path}" "{sound_path}"')
 
-fps = 24
-minimum_diff_frames = 1
-minimum_diff_s = minimum_diff_frames / fps
-FACTOR_TOO_BIG = 2
-# Load WAV file
-write = True
-def main():
+    fps = 24
+    minimum_diff_frames = 1
+    minimum_diff_s = minimum_diff_frames / fps
+    FACTOR_TOO_BIG = 2
+    # Load WAV file
+    write = True
+    
     abs_samples, sound_sample_rate = get_abs_sound(sound_path)
     # threshold = 0.75 * np.max(abs_samples) if skate else 0.5 * np.max(abs_samples)
     last_peaks_num = 0
     last_threshold = np.max(abs_samples)
     for i, threshold in enumerate(np.arange(np.max(abs_samples), np.max(abs_samples) / 10, -np.max(abs_samples) / 10)):
-        starts, ends = get_starts_and_ends(abs_samples, sound_sample_rate, threshold)
+        starts, ends = get_starts_and_ends(abs_samples, sound_sample_rate, threshold, minimum_diff_s)
         plot(abs_samples, sample_rate=sound_sample_rate, threshold=threshold, starts=list(starts), ends=list(ends))
         current_peaks_num = len(starts)
 
@@ -127,20 +128,20 @@ def main():
         last_peaks_num = current_peaks_num
         last_threshold = threshold
 
-    starts, ends = get_starts_and_ends(abs_samples, sound_sample_rate, threshold)
+    starts, ends = get_starts_and_ends(abs_samples, sound_sample_rate, threshold, minimum_diff_s)
     plot(abs_samples, sample_rate=sound_sample_rate, threshold=threshold, starts=list(starts), ends=list(ends))
-    print(f"{i = }")
+    # print(f"{i = }")
     if write:
-        write_to_json(starts, name)
+        write_to_json(starts, video_name)
 
 
-def get_starts_and_ends(abs_samples, sound_sample_rate, threshold):
+def get_starts_and_ends(abs_samples, sound_sample_rate, threshold, minimum_diff_s):
     ind_starts, ind_ends, _ = find_peaks(abs_samples, threshold=threshold,
                                          hold_for_unify=minimum_diff_s * sound_sample_rate)
     starts, ends = ind_starts / sound_sample_rate, ind_ends / sound_sample_rate
-    for s, e in zip(starts, ends):
-        print(s, e)
-    print()
+    # for s, e in zip(starts, ends):
+    #     print(s, e)
+    # print()
     return starts, ends
 
 

@@ -189,8 +189,10 @@ class AVClassifier:
         self.match_peaks()
         self.calculate_time_differences()
         result = self.analyze_differences()
-        if output_path:
-            self.save_results(output_path)
+        if not output_path:
+            audio_name = pathlib.Path(audio_json_path).stem
+            output_path = f"results_{audio_name}"
+        self.save_results(output_path)
 
         classification = result['classification']
         confidence = result['confidence']

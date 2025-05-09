@@ -4,6 +4,43 @@ import argparse
 import time
 import json
 from pathlib import Path
+from dataclasses import dataclass
+from typing import Set
+
+
+@dataclass
+class FrameDiff:
+    frame: int
+    diff: float
+
+
+def detect_peak_frames(frame_diffs, min_ratio=0.5, window_size=6) -> Set[int]:
+    """
+    Detect peak frames in an array of frame differences.
+
+    Args:
+        frame_diffs: Array of frame differences/motion values
+        min_ratio: Threshold for motion decrease (lower means sharper decrease required)
+        window_size: Size of window to consider when selecting the highest peak
+
+    Returns:
+        List of tuples (frame_index, difference_value)
+    """
+    # Safety check
+    if len(frame_diffs) < 2:
+        return set()
+
+    # Initialize variables
+    peaks = {}
+
+    # Iterate through frames (starting from index 1 since we need previous frame)
+    for i in range(2, len(frame_diffs)):
+        diff = -frame_diffs[i]
+        frame_window = i // window_size
+        if frame_window not in peaks or peaks[frame_window].diff < frame_diffs[i]:
+            if diff > np.percentile(frame_diffs, 90) and min(frame_diffs[i-1], frame_diffs[i-2])/-frame_diffs[i] <= min_ratio:
+                peaks[frame_window] = FrameDiff(i, diff)
+    return set([peak.frame for peak in peaks.values()])
 
 
 class SoundActionDetector:
@@ -67,7 +104,7 @@ class SoundActionDetector:
 
         # Main detection data
         detected_actions = []
-        frame_diffs = []
+        motions = []
         frame_number = 0
         frame_data = []  # Store frame data for later visualization
 
@@ -177,7 +214,7 @@ class SoundActionDetector:
                               vertical_flow * self.vertical_motion_weight +
                               horizontal_flow * self.horizontal_motion_weight) / (width * height) * 8000
 
-            frame_diffs.append(combined_score)
+            motions.append(combined_score)
 
             # Store frame data for later visualization
             if output_path:
@@ -202,11 +239,10 @@ class SoundActionDetector:
             print(f"Output video saved to: {output_path}")
 
         # Process motion data to detect peaks (sound actions)
-        window_size = 5
-        smoothed_diffs = np.abs(np.diff(np.convolve(frame_diffs, np.ones(window_size) / window_size, mode='same')))
+        smoothed_diffs = [motions[i] - motions[i-1] for i in range(1, len(motions))]
 
         # Store full motion history for potential debugging
-        self.motion_history = frame_diffs.copy()
+        self.motion_history = motions.copy()
 
         # Calculate adaptive threshold based on video content
         mean_motion = np.mean(smoothed_diffs)
@@ -232,14 +268,14 @@ class SoundActionDetector:
             vis_out = cv2.VideoWriter(output_path, fourcc, fps,
                                       (frame_data[0]['frame'].shape[1], frame_data[0]['frame'].shape[0]))
 
+            peaks = detect_peak_frames(smoothed_diffs)
+            print(f"peaks detected: {peaks}")
+
             for i, frame_info in enumerate(frame_data):
                 frame = frame_info['frame']
                 # Only draw indicators on peak frames
-                if (i < len(frame_data) - 1 # Not reaching the end
-                        and min(frame_diffs[i]/frame_diffs[max(i-1, 0)], frame_diffs[max(i+1, 0)]/frame_diffs[max(i-1, 0)]) < 0.5 # Sharp decrease in motion
-                        and (not action_timestamps or i - action_timestamps[-1][0] > 5) # Haven't added a similar frame b
-                ):
-                    confidence = min(1, float(abs(round(1 - frame_diffs[i]/max(frame_diffs[max(i-1, 0)], frame_diffs[max(i-2, 0)]), 3))))
+                if i-1 in peaks:
+                    confidence = min(1, float(abs(round(1 - smoothed_diffs[i]/max(smoothed_diffs[max(i-1, 0)], smoothed_diffs[max(i-2, 0)]), 3))))
 
                     # Add timestamp and confidence
                     timestamp_ms = round(i / fps, 3)
@@ -275,9 +311,11 @@ class SoundActionDetector:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, confidence_color, 2)
 
                 # Add motion score
-                cv2.putText(frame, f"Motion: {frame_diffs[i]:.6f}", (10, 30),
+                cv2.putText(frame, f"Motion: {motions[i]:.6f}", (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                cv2.putText(frame, f"Difference: {frame_diffs[i]-frame_diffs[max(0, i-1)]:.6f}", (300, 30),
+                cv2.putText(frame, f"Difference: {motions[i]-motions[max(0, i-1)]:.6f}", (300, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(frame, f"Frame: {i}", (600, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
                 vis_out.write(frame)
@@ -322,36 +360,21 @@ class SoundActionDetector:
         print(f"Results saved to {output_path}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Detect sound-inducing actions in a silent video')
-    parser.add_argument('input_video', help='Path to the input video file')
-    parser.add_argument('--output', '-o', help='Path to save detection results JSON')
-    parser.add_argument('--visualization', '-v', help='Path to save visualization video')
-    parser.add_argument('--sensitivity', '-s', type=float, default=0.7,  # Higher default sensitivity
-                        help='Detection sensitivity (0.0-1.0)')
-    parser.add_argument('--debug', '-d', action='store_true',
-                        help='Show debug information and save motion graph')
-
-    args = parser.parse_args()
-
-    # Set default output path if not specified
-    if not args.output:
-        output_path = Path.cwd() / 'video' / Path(args.input_video).with_suffix('.json').name
-    else:
-        output_path = args.output
+def video_peaks_detection(video_name: str):
+    output_path = Path.cwd() / 'video' / Path(video_name).with_suffix('.json').name
 
     # Initialize and run detector
-    detector = SoundActionDetector(sensitivity=args.sensitivity)
-    action_timestamps = detector.process_video(args.input_video, Path.cwd() / 'video' / Path(args.input_video).with_suffix('.annotated.mp4').name)
+    detector = SoundActionDetector(sensitivity=0.7)
+    action_timestamps = detector.process_video(video_name, Path.cwd() / 'video' / Path(video_name).with_suffix('.annotated.mp4').name)
     detector.save_results(action_timestamps, output_path)
 
     # Debug visualization if requested
-    if args.debug and action_timestamps:
+    if action_timestamps:
         try:
             import matplotlib.pyplot as plt
 
             # Get video properties
-            cap = cv2.VideoCapture(args.input_video)
+            cap = cv2.VideoCapture(video_name)
             fps = cap.get(cv2.CAP_PROP_FPS)
             cap.release()
 
@@ -376,7 +399,7 @@ def main():
             # Add labels
             plt.xlabel('Time (seconds)')
             plt.ylabel('Motion Magnitude')
-            plt.title(f'Motion Analysis: {Path(args.input_video).name}')
+            plt.title(f'Motion Analysis: {Path(video_name).name}')
 
             # Add detection threshold
             if hasattr(detector, 'adaptive_threshold'):
@@ -387,7 +410,7 @@ def main():
             plt.legend()
 
             # Save plot
-            plot_path = Path(args.input_video).with_suffix('.motion_analysis.png')
+            plot_path = Path(video_name).with_suffix('.motion_analysis.png')
             plt.savefig(str(plot_path))
             print(f"Motion analysis graph saved to {plot_path}")
 
